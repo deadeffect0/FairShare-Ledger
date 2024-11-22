@@ -1,77 +1,82 @@
 #include <iostream>
 #include <set>
 #include <map>
+#include <string>
 
 using namespace std;
 
-int main(){
-    int no_of_transactions, friends;
-    cin >> no_of_transactions >> friends;
+int main() {
+    int transactions, num_friends;
+    cin >> transactions >> num_friends;
 
-    string x,y;
+    string payer, payee;
     int amount;
 
-    map<string, int>net;
+    map<string, int> balanceSheet;
 
-    int onot = no_of_transactions;
-    while (no_of_transactions--){
-        cin >> x >> y >> amount;
+    int originalTransactions = transactions;
+    while (transactions--) {
+        cin >> payer >> payee >> amount;
 
-        if (net.count(x) == 0){
-            net[x] = 0;
+        // Initialize balance for new participants
+        if (!balanceSheet.count(payer)) {
+            balanceSheet[payer] = 0;
+        }
+        if (!balanceSheet.count(payee)) {
+            balanceSheet[payee] = 0;
         }
 
-        if (net.count(y) == 0){
-            net[y] = 0;
-        }
-
-        net[x] -= amount;
-        net[y] += amount;
+        // Update balances
+        balanceSheet[payer] -= amount;
+        balanceSheet[payee] += amount;
     }
 
-    multiset< pair<int, string> > m;
-    for (auto p: net){
-        string person = p.first;
-        int amount = p.second;
-
-        if (net[person] != 0){
-            m.insert( make_pair(amount, person) );
+    // Create a multiset to store participants with non-zero balances
+    multiset<pair<int, string>> balances;
+    for (const auto& entry : balanceSheet) {
+        if (entry.second != 0) {
+            balances.insert({entry.second, entry.first});
         }
     }
 
-    int count = 0;
-    while(!m.empty()){
-        auto low = m.begin();
-        auto high = prev( m.end() );
+    int optimizedTransactions = 0;
+    while (!balances.empty()) {
+        auto lowest = balances.begin(); // Smallest balance (debtor)
+        auto highest = prev(balances.end()); // Largest balance (creditor)
 
-        int debit = low->first;
-        string debit_person = low->second;
+        int debit = lowest->first;
+        string debtor = lowest->second;
 
-        int credit = high->first;
-        string credit_person = high->second;
+        int credit = highest->first;
+        string creditor = highest->second;
 
-        m.erase(low);
-        m.erase(high);
+        balances.erase(lowest);
+        balances.erase(highest);
 
-        int settlement_amount = min(-debit, credit);
-        debit += settlement_amount;
-        credit -= settlement_amount;
+        // Settle the minimum amount between debtor and creditor
+        int settleAmount = min(-debit, credit);
+        debit += settleAmount;
+        credit -= settleAmount;
 
-        cout << debit_person << " will pay " << settlement_amount << " to " << credit_person << endl;
+        cout << debtor << " pays " << settleAmount << " to " << creditor << "." << endl;
 
-        if (debit != 0){
-            m.insert( make_pair(debit, debit_person) );
+        // Reinsert updated balances if non-zero
+        if (debit != 0) {
+            balances.insert({debit, debtor});
+        }
+        if (credit != 0) {
+            balances.insert({credit, creditor});
         }
 
-        if (credit != 0){
-            m.insert( make_pair(credit, credit_person) );
-        }
-
-        count += 1;
+        optimizedTransactions++;
     }
+
     cout << endl;
-    cout << "Without Algorithm it took: " << onot << " transacions" << endl;
-    cout << "With Algorithm it took: " << count << " transacions";
-    cout << endl;
+    cout << "Summary of Transactions:" << endl;
+    cout << "-------------------------" << endl;
+    cout << "Initial number of transactions: " << originalTransactions << endl;
+    cout << "Optimized number of transactions: " << optimizedTransactions << endl;
+    cout << "Reduction in transactions: " << (originalTransactions - optimizedTransactions) << endl;
 
+    return 0;
 }
